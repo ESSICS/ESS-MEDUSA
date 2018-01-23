@@ -13,6 +13,7 @@
         This is an ESS specific extension and reworking of HanSolo's Medusa
         (https://github.com/HanSolo/Medusa).
     </description>
+    <url>https://github.com/ESSICS/ESS-MEDUSA</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
