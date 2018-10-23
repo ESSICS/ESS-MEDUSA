@@ -15,7 +15,7 @@ To add a dependency on ESS-MDUSA using Maven, use the following:
 <dependency>
     <groupId>se.europeanspallationsource</groupId>
     <artifactId>javafx.control.medusa</artifactId>
-    <version>8.0.0</version>
+    <version>8.0.1</version>
     <scope>compile</scope>
 </dependency>
 ```
