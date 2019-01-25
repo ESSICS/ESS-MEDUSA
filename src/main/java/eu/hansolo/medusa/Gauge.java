@@ -44,6 +44,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.NamedArg;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
@@ -407,7 +408,7 @@ public class Gauge extends Control {
     public Gauge() {
         this(SkinType.GAUGE);
     }
-    public Gauge(final SkinType SKIN_TYPE) {
+    public Gauge(@NamedArg("SKIN_TYPE") final SkinType SKIN_TYPE) {
         setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
         skinType = SKIN_TYPE;
         getStyleClass().add("gauge");
@@ -5203,18 +5204,28 @@ public class Gauge extends Control {
 
         try {
 
-            double maxNoOfMajorTicks = 10;
             double maxNoOfMinorTicks = 10;
-            double niceRange         = (Helper.calcNiceNumber(getRange(), false));
+			double[] niceParameters = Helper.getNiceScale(getMinValue(), getMaxValue());
 
-            setMajorTickSpace(Helper.calcNiceNumber(niceRange / (maxNoOfMajorTicks - 1), true));
-            setMinorTickSpace(Helper.calcNiceNumber(getMajorTickSpace() / (maxNoOfMinorTicks - 1), true));
+			setMinValue(niceParameters[0]);
+            setMaxValue(niceParameters[1]);
+			setRange(niceParameters[2]);
+            setMajorTickSpace(niceParameters[3]);
+            setMinorTickSpace(Helper.calcNiceNumber(niceParameters[3] / (maxNoOfMinorTicks - 1), true));
 
-            double niceMinValue = (Math.floor(getMinValue() / getMajorTickSpace()) * getMajorTickSpace());
-            double niceMaxValue = (Math.ceil(getMaxValue() / getMajorTickSpace()) * getMajorTickSpace());
-
-            setMinValue(niceMinValue);
-            setMaxValue(niceMaxValue);
+//	--- old way of computing nice values ---------------------------------------
+//            double maxNoOfMajorTicks = 10;
+//            double niceRange         = (Helper.calcNiceNumber(getRange(), false));
+//
+//            setMajorTickSpace(Helper.calcNiceNumber(niceRange / (maxNoOfMajorTicks - 1), true));
+//            setMinorTickSpace(Helper.calcNiceNumber(getMajorTickSpace() / (maxNoOfMinorTicks - 1), true));
+//
+//            double niceMinValue = (Math.floor(getMinValue() / getMajorTickSpace()) * getMajorTickSpace());
+//            double niceMaxValue = (Math.ceil(getMaxValue() / getMajorTickSpace()) * getMajorTickSpace());
+//
+//            setMinValue(niceMinValue);
+//            setMaxValue(niceMaxValue);
+//	----------------------------------------------------------------------------
 
         } finally {
             updatingAutoscaleExtrema = false;
