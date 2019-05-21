@@ -94,6 +94,40 @@ public class Helper {
         return VALUE;
     }
 
+    public static final double clampMin(final double MIN, final double VALUE) {
+        if (VALUE < MIN) return MIN;
+        return VALUE;
+    }
+    public static final double clampMax(final double MAX, final double VALUE) {
+        if (VALUE > MAX) return MAX;
+        return VALUE;
+    }
+
+    public static final double round(final double VALUE, final int PRECISION) {
+        final int SCALE = (int) Math.pow(10, PRECISION);
+        return (double) Math.round(VALUE * SCALE) / SCALE;
+    }
+
+    public static final double roundTo(final double VALUE, final double TARGET) { return TARGET * (Math.round(VALUE / TARGET)); }
+
+    public static final double roundToHalf(final double VALUE) { return Math.round(VALUE * 2) / 2.0; }
+
+
+    public static final double nearest(final double SMALLER, final double VALUE, final double LARGER) {
+        return (VALUE - SMALLER) < (LARGER - VALUE) ? SMALLER : LARGER;
+    }
+
+    public static final int roundDoubleToInt(final double VALUE){
+        double dAbs = Math.abs(VALUE);
+        int    i      = (int) dAbs;
+        double result = dAbs - (double) i;
+        if (result < 0.5) {
+            return VALUE < 0 ? -i : i;
+        } else {
+            return VALUE < 0 ? -(i + 1) : i + 1;
+        }
+    }
+
     public static final double[] calcAutoScale(final double MIN_VALUE, final double MAX_VALUE) {
         double maxNoOfMajorTicks = 10;
         double maxNoOfMinorTicks = 10;
@@ -111,6 +145,88 @@ public class Helper {
     }
 
     /**
+     * Calculates nice minValue, maxValue and stepSize for given MIN and MAX values
+     * @param MIN
+     * @param MAX
+     * @return array of doubles with [niceMin, niceMax, niceRange, niceStep]
+     */
+    public static final double[] getNiceScale(final double MIN, final double MAX) {
+        return getNiceScale(MIN, MAX, 20);
+    }
+    /**
+     * Calculates nice minValue, maxValue and stepSize for given MIN and MAX values
+     * @param MIN
+     * @param MAX
+     * @param MAX_NO_OF_TICKS
+     * @return array of doubles with [niceMin, niceMax, niceRange, niceStep]
+     */
+    public static final double[] getNiceScale(final double MIN, final double MAX, final int MAX_NO_OF_TICKS) {
+        // Minimal increment to avoid round extreme values to be on the edge of the chart
+        double minimum = MIN;
+        double maximum = MAX;
+        double epsilon = (MAX - MIN) / 1e6;
+        maximum += epsilon;
+        minimum -= epsilon;
+        double range = maximum - minimum;
+
+        // Target number of values to be displayed on the Y axis (it may be less)
+        int stepCount = MAX_NO_OF_TICKS;
+        // First approximation
+        double roughStep = range / (stepCount - 1);
+
+        // Set best niceStep for the range
+        //double[] goodNormalizedSteps = { 1, 1.5, 2, 2.5, 5, 7.5, 10 }; // keep the 10 at the end
+        double[] goodNormalizedSteps = { 1, 2, 5, 10 };
+
+        // Normalize rough niceStep to find the normalized one that fits best
+        double stepPower          = Math.pow(10, -Math.floor(Math.log10(Math.abs(roughStep))));
+        double normalizedStep     = roughStep * stepPower;
+        double goodNormalizedStep = Arrays.stream(goodNormalizedSteps).filter(n -> Double.compare(n, normalizedStep) >= 0).findFirst().getAsDouble();
+        double niceStep           = goodNormalizedStep / stepPower;
+
+        // Determine the scale limits based on the chosen niceStep.
+        double niceMin = minimum < 0 ? Math.floor(minimum / niceStep) * niceStep : Math.ceil(minimum / niceStep) * niceStep;
+        double niceMax = maximum < 0 ? Math.floor(maximum / niceStep) * niceStep : Math.ceil(maximum / niceStep) * niceStep;
+
+        if (MIN % niceStep == 0) { niceMin = MIN; }
+        if (MAX % niceStep == 0) { niceMax = MAX; }
+
+        double niceRange = niceMax - niceMin;
+
+        return new double[] { niceMin, niceMax, niceRange, niceStep };
+    }
+
+    /**
+     * Can be used to implement discrete steps e.g. on a slider.
+     * @param MIN_VALUE          The min value of the range
+     * @param MAX_VALUE          The max value of the range
+     * @param VALUE              The value to snap
+     * @param MINOR_TICK_COUNT   The number of ticks between 2 major tick marks
+     * @param MAJOR_TICK_UNIT    The distance between 2 major tick marks
+     * @return The value snapped to the next tick mark defined by the given parameters
+     */
+    public static final double snapToTicks(final double MIN_VALUE, final double MAX_VALUE, final double VALUE, final int MINOR_TICK_COUNT, final double MAJOR_TICK_UNIT) {
+        double v = VALUE;
+        int    minorTickCount = clamp(0, 10, MINOR_TICK_COUNT);
+        double majorTickUnit  = Double.compare(MAJOR_TICK_UNIT, 0.0) <= 0 ? 0.25 : MAJOR_TICK_UNIT;
+        double tickSpacing;
+
+        if (minorTickCount != 0) {
+            tickSpacing = majorTickUnit / (Math.max(minorTickCount, 0) + 1);
+        } else {
+            tickSpacing = majorTickUnit;
+        }
+
+        int    prevTick      = (int) ((v - MIN_VALUE) / tickSpacing);
+        double prevTickValue = prevTick * tickSpacing + MIN_VALUE;
+        double nextTickValue = (prevTick + 1) * tickSpacing + MIN_VALUE;
+
+        v = nearest(prevTickValue, v, nextTickValue);
+
+        return clamp(MIN_VALUE, MAX_VALUE, v);
+    }
+
+    /**
      * Returns a "niceScaling" number approximately equal to the range.
      * Rounds the number if ROUND == true.
      * Takes the ceiling if ROUND = false.
@@ -125,13 +241,11 @@ public class Helper {
         double fraction = RANGE / Math.pow(10, exponent);  // fractional part of range
 
         if (ROUND) {
-            if (Double.compare(fraction, 1.5) < 0) {
+            if (fraction < 1.5) {
                 niceFraction = 1;
-            } else if (Double.compare(fraction, 2.5)  < 0) {
+            } else if (fraction < 3) {
                 niceFraction = 2;
-            } else if (Double.compare(fraction, 4.5)  < 0) {
-                niceFraction = 4;
-            } else if (Double.compare(fraction, 5.5) < 0) {
+            } else if (fraction < 7) {
                 niceFraction = 5;
             } else if (Double.compare(fraction, 7) < 0) {
                 niceFraction = 6;
@@ -139,15 +253,11 @@ public class Helper {
                 niceFraction = 10;
             }
         } else {
-            if (Double.compare(fraction, 1) <= 0) {
+            if (fraction <= 1) {
                 niceFraction = 1;
-            } else if (Double.compare(fraction, 2) <= 0) {
+            } else if (fraction <= 2) {
                 niceFraction = 2;
-            } else if (Double.compare(fraction, 3) <= 0) {
-                niceFraction = 3;
-            } else if (Double.compare(fraction, 4) <= 0) {
-                niceFraction = 4;
-            } else if (Double.compare(fraction, 5) <= 0) {
+            } else if (fraction <= 5) {
                 niceFraction = 5;
             } else if (Double.compare(fraction, 6) <= 0) {
                 niceFraction = 6;
@@ -206,7 +316,7 @@ public class Helper {
         }
     }
 
-    public static DateTimeFormatter getDateFormat(final Locale LOCALE) {
+    public static final DateTimeFormatter getDateFormat(final Locale LOCALE) {
         if (Locale.US == LOCALE) {
             return DateTimeFormatter.ofPattern("MM/dd/YYYY");
         } else if (Locale.CHINA == LOCALE) {
@@ -215,11 +325,11 @@ public class Helper {
             return DateTimeFormatter.ofPattern("dd.MM.YYYY");
         }
     }
-    public static DateTimeFormatter getLocalizedDateFormat(final Locale LOCALE) {
+    public static final DateTimeFormatter getLocalizedDateFormat(final Locale LOCALE) {
         return DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(LOCALE);
     }
 
-    public static void enableNode(final Node NODE, final boolean ENABLE) {
+    public static final void enableNode(final Node NODE, final boolean ENABLE) {
         NODE.setManaged(ENABLE);
         NODE.setVisible(ENABLE);
     }
@@ -227,67 +337,6 @@ public class Helper {
     public static final String colorToCss(final Color COLOR) {
         return COLOR.toString().replace("0x", "#");
     }
-
-	/**
-	 * Calculates nice minValue, maxValue and stepSize for given MIN and MAX values
-	 *
-	 * @param MIN
-	 * @param MAX
-	 * @return array of doubles with [niceMin, niceMax, niceRange, niceStep]
-	 */
-	public static final double[] getNiceScale( final double MIN, final double MAX ) {
-		return getNiceScale(MIN, MAX, 20);
-	}
-
-	/**
-	 * Calculates nice minValue, maxValue and stepSize for given MIN and MAX values
-	 *
-	 * @param MIN
-	 * @param MAX
-	 * @param MAX_NO_OF_TICKS
-	 * @return array of doubles with [niceMin, niceMax, niceRange, niceStep]
-	 */
-	public static final double[] getNiceScale( final double MIN, final double MAX, final int MAX_NO_OF_TICKS ) {
-
-		// Minimal increment to avoid round extreme values to be on the edge of the chart
-		double minimum = MIN;
-		double maximum = MAX;
-		double epsilon = ( MAX - MIN ) / 1e6;
-		maximum += epsilon;
-		minimum -= epsilon;
-		double range = maximum - minimum;
-
-		// Target number of values to be displayed on the Y axis (it may be less)
-		int stepCount = MAX_NO_OF_TICKS;
-		// First approximation
-		double roughStep = range / ( stepCount - 1 );
-
-		// Set best niceStep for the range
-		//double[] goodNormalizedSteps = { 1, 1.5, 2, 2.5, 5, 7.5, 10 }; // keep the 10 at the end
-		double[] goodNormalizedSteps = { 1, 2, 5, 10 };
-
-		// Normalize rough niceStep to find the normalized one that fits best
-		double stepPower = Math.pow(10, -Math.floor(Math.log10(Math.abs(roughStep))));
-		double normalizedStep = roughStep * stepPower;
-		double goodNormalizedStep = Arrays.stream(goodNormalizedSteps).filter(n -> Double.compare(n, normalizedStep) >= 0).findFirst().getAsDouble();
-		double niceStep = goodNormalizedStep / stepPower;
-
-		// Determine the scale limits based on the chosen niceStep.
-		double niceMin = minimum < 0 ? Math.floor(minimum / niceStep) * niceStep : Math.ceil(minimum / niceStep) * niceStep;
-		double niceMax = maximum < 0 ? Math.floor(maximum / niceStep) * niceStep : Math.ceil(maximum / niceStep) * niceStep;
-
-		if ( MIN % niceStep == 0 ) {
-			niceMin = MIN;
-		}
-		if ( MAX % niceStep == 0 ) {
-			niceMax = MAX;
-		}
-
-		double niceRange = niceMax - niceMin;
-
-		return new double[] { niceMin, niceMax, niceRange, niceStep };
-		
-	}
 
     public static final ThreadFactory getThreadFactory(final String THREAD_NAME, final boolean IS_DAEMON) {
         return runnable -> {
@@ -362,9 +411,9 @@ public class Helper {
         return PATTERN;
     }
 
-    public static void drawTrapezoid(final GraphicsContext CTX,
-                              final double PI1X, final double PI1Y, final double PI2X, final double PI2Y,
-                              final double PO1X, final double PO1Y, final double PO2X, final double PO2Y) {
+    public static final void drawTrapezoid(final GraphicsContext CTX,
+                                           final double PI1X, final double PI1Y, final double PI2X, final double PI2Y,
+                                           final double PO1X, final double PO1Y, final double PO2X, final double PO2Y) {
         CTX.beginPath();
         CTX.moveTo(PI2X, PI2Y);
         CTX.lineTo(PI1X, PI1Y);
@@ -373,8 +422,8 @@ public class Helper {
         CTX.closePath();
         CTX.fill();
     }
-    public static void drawTriangle(final GraphicsContext CTX,
-                                    final double PIX, final double PIY, final double PO1X, final double PO1Y, final double PO2X, final double PO2Y) {
+    public static final void drawTriangle(final GraphicsContext CTX,
+                                          final double PIX, final double PIY, final double PO1X, final double PO1Y, final double PO2X, final double PO2Y) {
         CTX.beginPath();
         CTX.moveTo(PIX, PIY);
         CTX.lineTo(PO1X, PO1Y);
@@ -382,18 +431,18 @@ public class Helper {
         CTX.closePath();
         CTX.fill();
     }
-    public static void drawDot(final GraphicsContext CTX, final double CENTER_X, final double CENTER_Y, final double SIZE) {
+    public static final void drawDot(final GraphicsContext CTX, final double CENTER_X, final double CENTER_Y, final double SIZE) {
         CTX.fillOval(CENTER_X, CENTER_Y, SIZE, SIZE);
     }
-    public static void drawLine(final GraphicsContext CTX, final double P1X, final double P1Y, final double P2X, final double P2Y) {
+    public static final void drawLine(final GraphicsContext CTX, final double P1X, final double P1Y, final double P2X, final double P2Y) {
         CTX.strokeLine(P1X, P1Y, P2X, P2Y);
     }
 
-    public static boolean isMonochrome(final Color COLOR) {
+    public static final boolean isMonochrome(final Color COLOR) {
         return Double.compare(COLOR.getRed(), COLOR.getGreen()) == 0 && Double.compare(COLOR.getGreen(), COLOR.getBlue()) == 0;
     }
 
-    public static double colorDistance(final Color COLOR_1, final Color COLOR_2) {
+    public static final double colorDistance(final Color COLOR_1, final Color COLOR_2) {
         final double DELTA_R = (COLOR_2.getRed() - COLOR_1.getRed());
         final double DELTA_G = (COLOR_2.getGreen() - COLOR_1.getGreen());
         final double DELTA_B = (COLOR_2.getBlue() - COLOR_1.getBlue());
@@ -401,21 +450,21 @@ public class Helper {
         return Math.sqrt(DELTA_R * DELTA_R + DELTA_G * DELTA_G + DELTA_B * DELTA_B);
     }
 
-    public static boolean isBright(final Color COLOR) { return !isDark(COLOR); }
-    public static boolean isDark(final Color COLOR) {
+    public static final boolean isBright(final Color COLOR) { return !isDark(COLOR); }
+    public static final boolean isDark(final Color COLOR) {
         final double DISTANCE_TO_WHITE = colorDistance(COLOR, Color.WHITE);
         final double DISTANCE_TO_BLACK = colorDistance(COLOR, Color.BLACK);
         return DISTANCE_TO_BLACK < DISTANCE_TO_WHITE;
     }
 
-    public static Color getTranslucentColorFrom(final Color COLOR, final double FACTOR) {
+    public static final Color getTranslucentColorFrom(final Color COLOR, final double FACTOR) {
         return Color.color(COLOR.getRed(), COLOR.getGreen(), COLOR.getBlue(), Helper.clamp(0.0, 1.0, FACTOR));
     }
 
-    public static void drawRadialTickMarks(final Gauge GAUGE, final GraphicsContext CTX,
-                                           final double MIN_VALUE, final double MAX_VALUE,
-                                           final double START_ANGLE, final double ANGLE_RANGE, final double ANGLE_STEP,
-                                           final double CENTER_X, final double CENTER_Y, final double SIZE) {
+    public static final void drawRadialTickMarks(final Gauge GAUGE, final GraphicsContext CTX,
+                                                 final double MIN_VALUE, final double MAX_VALUE,
+                                                 final double START_ANGLE, final double ANGLE_RANGE, final double ANGLE_STEP,
+                                                 final double CENTER_X, final double CENTER_Y, final double SIZE) {
         double               sinValue;
         double               cosValue;
         double               centerX               = CENTER_X;
@@ -972,8 +1021,17 @@ public class Helper {
                         break;
                 }
             } else if (minorTickMarksVisible) {
+                boolean drawMinorTicks = false;
+                if (minorTickSpaceBD.stripTrailingZeros().scale() <= 0) {
+                    if (Double.compare(counterBD.remainder(minorTickSpaceBD).doubleValue(), 0.0) == 0) {
+                        drawMinorTicks = true;
+                    }
+                } else {
+                    drawMinorTicks = true;
+                }
+
                 // Draw minor tick mark
-                if (TickMarkType.TICK_LABEL != majorTickMarkType) {
+                if (drawMinorTicks && TickMarkType.TICK_LABEL != majorTickMarkType) {
                     CTX.setFill(tickMarkSectionsVisible ? Helper.getColorOfSection(tickMarkSections, counter, minorTickMarkColor) : minorTickMarkColor);
                     CTX.setStroke(tickMarkSectionsVisible ? Helper.getColorOfSection(tickMarkSections, counter, minorTickMarkColor) : minorTickMarkColor);
                     switch (minorTickMarkType) {
@@ -1027,7 +1085,7 @@ public class Helper {
         }
     }
 
-    public static Image createNoiseImage(final double WIDTH, final double HEIGHT, final Color DARK_COLOR, final Color BRIGHT_COLOR, final double ALPHA_VARIATION_IN_PERCENT) {
+    public static final Image createNoiseImage(final double WIDTH, final double HEIGHT, final Color DARK_COLOR, final Color BRIGHT_COLOR, final double ALPHA_VARIATION_IN_PERCENT) {
         if (Double.compare(WIDTH, 0) <= 0 || Double.compare(HEIGHT, 0) <= 0) return null;
         int                 width                   = (int) WIDTH;
         int                 height                  = (int) HEIGHT;
@@ -1048,9 +1106,9 @@ public class Helper {
         return IMAGE;
     }
 
-    public static void drawTimeSections(final Clock CLOCK, final GraphicsContext CTX, final List<TimeSection> SECTIONS, final double SIZE,
-                                        final double XY_INSIDE, final double XY_OUTSIDE, final double WH_INSIDE, final double WH_OUTSIDE,
-                                        final double LINE_WIDTH) {
+    public static final void drawTimeSections(final Clock CLOCK, final GraphicsContext CTX, final List<TimeSection> SECTIONS, final double SIZE,
+                                              final double XY_INSIDE, final double XY_OUTSIDE, final double WH_INSIDE, final double WH_OUTSIDE,
+                                              final double LINE_WIDTH) {
         if (SECTIONS.isEmpty()) return;
         TickLabelLocation tickLabelLocation = CLOCK.getTickLabelLocation();
         ZonedDateTime     time              = CLOCK.getTime();
@@ -1088,8 +1146,8 @@ public class Helper {
         }
     }
 
-    public static void drawTimeAreas(final Clock CLOCK, final GraphicsContext CTX, final List<TimeSection> AREAS, final double SIZE,
-                                     final double XY_INSIDE, final double XY_OUTSIDE, final double WH_INSIDE, final double WH_OUTSIDE) {
+    public static final void drawTimeAreas(final Clock CLOCK, final GraphicsContext CTX, final List<TimeSection> AREAS, final double SIZE,
+                                           final double XY_INSIDE, final double XY_OUTSIDE, final double WH_INSIDE, final double WH_OUTSIDE) {
         if (AREAS.isEmpty()) return;
         TickLabelLocation tickLabelLocation = CLOCK.getTickLabelLocation();
         ZonedDateTime     time              = CLOCK.getTime();
@@ -1125,7 +1183,7 @@ public class Helper {
         }
     }
 
-    public static void drawAlarms(final Clock CLOCK, final double SIZE, final double ALARM_MARKER_SIZE, final double ALARM_MARKER_RADIUS, final Map<Alarm, Circle> ALARM_MAP, final DateTimeFormatter DATE_TIME_FORMATTER, final ZonedDateTime TIME) {
+    public static final void drawAlarms(final Clock CLOCK, final double SIZE, final double ALARM_MARKER_SIZE, final double ALARM_MARKER_RADIUS, final Map<Alarm, Circle> ALARM_MAP, final DateTimeFormatter DATE_TIME_FORMATTER, final ZonedDateTime TIME) {
         if (CLOCK.isAlarmsVisible()) {
             double alarmSize = ALARM_MARKER_SIZE * SIZE;
             double center    = SIZE * 0.5;
@@ -1169,11 +1227,11 @@ public class Helper {
         }
     }
 
-    public static String formatNumber(final Gauge GAUGE, final double VALUE) {
+    public static final String formatNumber(final Gauge GAUGE, final double VALUE) {
         return formatNumber(GAUGE.getLocale(), GAUGE.getFormatString(), GAUGE.getDecimals(), VALUE);
     }
 
-    public static String formatNumber(final Locale LOCALE, final String FORMAT_STRING, final int DECIMALS, final double VALUE) {
+    public static final String formatNumber(final Locale LOCALE, final String FORMAT_STRING, final int DECIMALS, final double VALUE) {
         double value = VALUE;
         if (value > 0) {
             value = Math.floor(value * Math.pow(10, DECIMALS)) / Math.pow(10, DECIMALS);
@@ -1183,7 +1241,7 @@ public class Helper {
         return String.format(LOCALE, FORMAT_STRING, value);
     }
 
-    public static String formatNumber(final Locale LOCALE, final double MIN_VALUE, final double MAX_VALUE, final int DECIMALS, final double VALUE) {
+    public static final String formatNumber(final Locale LOCALE, final double MIN_VALUE, final double MAX_VALUE, final int DECIMALS, final double VALUE) {
         StringBuilder sb        = new StringBuilder("%.").append(DECIMALS).append("f");
         String        f         = sb.toString();
         int           minLength = String.format(Locale.US, f, MIN_VALUE).length();

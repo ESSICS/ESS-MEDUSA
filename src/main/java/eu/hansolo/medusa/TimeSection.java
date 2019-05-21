@@ -16,6 +16,8 @@
 
 package eu.hansolo.medusa;
 
+import java.time.LocalTime;
+import java.util.UUID;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -26,8 +28,6 @@ import javafx.event.EventTarget;
 import javafx.event.EventType;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
-
-import java.time.LocalTime;
 
 
 /**
@@ -333,8 +333,8 @@ public class TimeSection implements Comparable<TimeSection> {
 
     // ******************** Inner Classes *************************************
     public static class TimeSectionEvent extends Event {
-        public static final EventType<TimeSectionEvent> TIME_SECTION_ENTERED = new EventType(ANY, "TIME_SECTION_ENTERED");
-        public static final EventType<TimeSectionEvent> TIME_SECTION_LEFT    = new EventType(ANY, "TIME_SECTION_LEFT");
+        public static final EventType<TimeSectionEvent> TIME_SECTION_ENTERED = new EventType(ANY, "TIME_SECTION_ENTERED" + UUID.randomUUID().toString());
+        public static final EventType<TimeSectionEvent> TIME_SECTION_LEFT    = new EventType(ANY, "TIME_SECTION_LEFT" + UUID.randomUUID().toString());
 
         // ******************** Constructors **************************************
         public TimeSectionEvent(final Object SOURCE, final EventTarget TARGET, EventType<TimeSectionEvent> TYPE) {

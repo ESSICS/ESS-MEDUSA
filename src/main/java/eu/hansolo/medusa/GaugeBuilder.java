@@ -25,7 +25,6 @@ import eu.hansolo.medusa.Gauge.NeedleType;
 import eu.hansolo.medusa.Gauge.ScaleDirection;
 import eu.hansolo.medusa.Gauge.SkinType;
 import eu.hansolo.medusa.tools.GradientLookup;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -828,7 +827,16 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
             SkinType skinType = ((ObjectProperty<SkinType>) properties.get("skinType")).get();
             CONTROL = new Gauge(skinType);
             switch(skinType) {
-                case AMP         :
+                case AMP:
+                    CONTROL.setKnobPosition(Pos.BOTTOM_CENTER);
+                    CONTROL.setTitleColor(Color.WHITE);
+                    CONTROL.setLedVisible(true);
+                    CONTROL.setBackgroundPaint(Color.WHITE);
+                    CONTROL.setForegroundPaint(Color.BLACK);
+                    CONTROL.setLcdVisible(true);
+                    CONTROL.setShadowsEnabled(true);
+                    break;
+                case PLAIN_AMP:
                     CONTROL.setKnobPosition(Pos.BOTTOM_CENTER);
                     CONTROL.setTitleColor(Color.WHITE);
                     CONTROL.setLedVisible(true);
@@ -842,14 +850,14 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
                     CONTROL.setBarColor(Color.BLACK);
                     CONTROL.setThresholdColor(Color.BLACK);
                     break;
-                case DASHBOARD   :
+                case DASHBOARD:
                     CONTROL.setKnobPosition(Pos.BOTTOM_CENTER);
                     CONTROL.setDecimals(0);
                     CONTROL.setBarBackgroundColor(Color.LIGHTGRAY);
                     CONTROL.setBarColor(Color.rgb(93,190,205));
                     CONTROL.setStartFromZero(false);
                     break;
-                case FLAT        :
+                case FLAT:
                     CONTROL.setKnobPosition(Pos.CENTER);
                     CONTROL.setBarColor(Color.CYAN);
                     CONTROL.setBackgroundPaint(Color.TRANSPARENT);
@@ -860,20 +868,20 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
                     CONTROL.setDecimals(0);
                     CONTROL.setStartFromZero(true);
                     break;
-                case INDICATOR   :
+                case INDICATOR:
                     CONTROL.setKnobPosition(Pos.BOTTOM_CENTER);
                     CONTROL.setValueVisible(false);
                     CONTROL.setGradientBarEnabled(false);
                     CONTROL.setGradientBarStops(new Stop(0.0, Color.rgb(34,180,11)),
-                                        new Stop(0.5, Color.rgb(255,146,0)),
-                                        new Stop(1.0, Color.rgb(255,0,39)));
+                                                new Stop(0.5, Color.rgb(255,146,0)),
+                                                new Stop(1.0, Color.rgb(255,0,39)));
                     CONTROL.setTickLabelsVisible(false);
                     CONTROL.setNeedleColor(Color.rgb(71,71,71));
                     CONTROL.setBarBackgroundColor(Color.rgb(232,231,223));
                     CONTROL.setBarColor(Color.rgb(255,0,39));
                     CONTROL.setAngleRange(180);
                     break;
-                case KPI         :
+                case KPI:
                     CONTROL.setKnobPosition(Pos.BOTTOM_CENTER);
                     CONTROL.setDecimals(0);
                     CONTROL.setForegroundBaseColor(Color.rgb(126,126,127));
@@ -883,7 +891,7 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
                     CONTROL.setNeedleColor(Color.rgb(74,74,74));
                     CONTROL.setAngleRange(128);
                     break;
-                case MODERN      :
+                case MODERN:
                     CONTROL.setKnobPosition(Pos.CENTER);
                     CONTROL.setBackgroundPaint(Color.rgb(32, 32, 32));
                     CONTROL.setDecimals(0);
@@ -899,7 +907,7 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
                     CONTROL.setTickMarkColor(Color.BLACK);
                     CONTROL.setTickLabelOrientation(TickLabelOrientation.ORTHOGONAL);
                     break;
-                case SIMPLE      :
+                case SIMPLE:
                     CONTROL.setKnobPosition(Pos.CENTER);
                     CONTROL.setBorderPaint(Color.WHITE);
                     CONTROL.setNeedleBorderColor(Color.WHITE);
@@ -912,7 +920,7 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
                     CONTROL.setSubTitleColor(Color.WHITE);
                     CONTROL.setSectionsVisible(true);
                     break;
-                case SLIM        :
+                case SLIM:
                     CONTROL.setKnobPosition(Pos.CENTER);
                     CONTROL.setDecimals(2);
                     CONTROL.setStartFromZero(true);
@@ -922,7 +930,7 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
                     CONTROL.setValueColor(Color.rgb(228,231,238));
                     CONTROL.setUnitColor(Color.rgb(142,147,151));
                     break;
-                case SPACE_X     :
+                case SPACE_X:
                     CONTROL.setKnobPosition(Pos.CENTER);
                     CONTROL.setDecimals(0);
                     CONTROL.setThresholdColor(Color.rgb(180, 0, 0));
@@ -932,7 +940,7 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
                     CONTROL.setValueColor(Color.WHITE);
                     CONTROL.setUnitColor(Color.WHITE);
                     break;
-                case QUARTER     :
+                case QUARTER:
                     CONTROL.setKnobPosition(Pos.BOTTOM_RIGHT);
                     CONTROL.setAngleRange(90);
                     break;
@@ -1130,12 +1138,7 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
             CONTROL.setForegroundBaseColor(((ObjectProperty<Color>) properties.get("foregroundBaseColor")).get());
         }
 
-        if (properties.keySet().contains("minValue")) {
-            CONTROL.setMinValue(((DoubleProperty) properties.get("minValue")).get());
-        }
-        if (properties.keySet().contains("maxValue")) {
-            CONTROL.setMaxValue(((DoubleProperty) properties.get("maxValue")).get());
-        }
+        setMinMaxValues(CONTROL);
 
         for (String key : properties.keySet()) {
             if ("prefSize".equals(key)) {
@@ -1176,10 +1179,6 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
             } else if("styleClass".equals(key)) {
                 CONTROL.getStyleClass().setAll("gauge");
                 CONTROL.getStyleClass().addAll(((ObjectProperty<String[]>) properties.get(key)).get());
-            } else if ("autoScale".equals(key)) {
-                CONTROL.setAutoScale(((BooleanProperty) properties.get(key)).get());
-            } else if("value".equals(key)) {
-                CONTROL.setValue(((DoubleProperty) properties.get(key)).get());
             } else if("decimals".equals(key)) {
                 CONTROL.setDecimals(((IntegerProperty) properties.get(key)).get());
             } else if ("tickLabelDecimals".equals(key)) {
@@ -1410,6 +1409,11 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
                 CONTROL.setAlertMessage(((StringProperty) properties.get(key)).get());
             } else if ("smoothing".equals(key)) {
                 CONTROL.setSmoothing(((BooleanProperty) properties.get(key)).get());
+            } else if ("autoScale".equals(key)) {
+                CONTROL.setAutoScale(((BooleanProperty) properties.get(key)).get());
+                setMinMaxValues(CONTROL);
+            } else if("value".equals(key)) {
+                CONTROL.setValue(((DoubleProperty) properties.get(key)).get());
             }
         }
 
@@ -1422,5 +1426,10 @@ public class GaugeBuilder<B extends GaugeBuilder<B>> {
         }
 
         return CONTROL;
+    }
+
+    private void setMinMaxValues(final Gauge CONTROL) {
+        if (properties.keySet().contains("minValue")) { CONTROL.setMinValue(((DoubleProperty) properties.get("minValue")).get()); }
+        if (properties.keySet().contains("maxValue")) { CONTROL.setMaxValue(((DoubleProperty) properties.get("maxValue")).get()); }
     }
 }

@@ -16,9 +16,7 @@
 
 package eu.hansolo.medusa;
 
-import eu.hansolo.medusa.Gauge.SkinType;
 import eu.hansolo.medusa.GaugeDesign.GaugeBackground;
-import eu.hansolo.medusa.skins.GaugeSkin;
 import javafx.scene.control.Skin;
 import javafx.scene.effect.BlurType;
 import javafx.scene.effect.InnerShadow;
@@ -72,13 +70,9 @@ public class FGauge extends Region {
         gaugeBackground = BACKGROUND;
 
         Skin skin = gauge.getSkin();
-        /*
-        if (null != skin && gauge.getSkin().getClass() != GaugeSkin.class) {
-            throw new RuntimeException("Please change Skin to GaugeSkin.");
-        }
-        */
-        if (null != skin) {
-            throw new RuntimeException("Please change Skin to a valid Skin.");
+
+        if (null == skin) {
+            throw new RuntimeException("Please use a valid Skin.");
         }
 
         init();

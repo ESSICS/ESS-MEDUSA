@@ -22,6 +22,10 @@ import eu.hansolo.medusa.LcdDesign;
 import eu.hansolo.medusa.LcdFont;
 import eu.hansolo.medusa.Section;
 import eu.hansolo.medusa.tools.Helper;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import javafx.beans.InvalidationListener;
 import javafx.geometry.Insets;
 import javafx.geometry.VPos;
@@ -54,13 +58,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import static eu.hansolo.medusa.tools.Helper.formatNumber;
 
 
 /**
@@ -130,8 +127,8 @@ public class LcdSkin extends GaugeSkinBase {
         valueOffsetRight      = 0.0;
         digitalFontSizeFactor = 1.0;
         backgroundTextBuilder = new StringBuilder();
-        valueFormatString     = new StringBuilder("%.").append(Integer.toString(gauge.getDecimals())).append("f").toString();
-        otherFormatString     = new StringBuilder("%.").append(Integer.toString(gauge.getTickLabelDecimals())).append("f").toString();
+        valueFormatString     = new StringBuilder("%.").append(gauge.getDecimals()).append("f").toString();
+        otherFormatString     = new StringBuilder("%.").append(gauge.getTickLabelDecimals()).append("f").toString();
         locale                = gauge.getLocale();
         sections              = gauge.getSections();
         sectionColorMap       = new HashMap<>(sections.size());
@@ -262,6 +259,7 @@ public class LcdSkin extends GaugeSkinBase {
             updateLcdDesign(height);
         } else if ("VISIBILITY".equals(EVENT_TYPE)) {
             Helper.enableNode(crystalOverlay, gauge.isLcdCrystalEnabled());
+            Helper.enableNode(title, !gauge.getTitle().isEmpty());
             Helper.enableNode(unitText, !gauge.getUnit().isEmpty());
             Helper.enableNode(upperLeftText, gauge.isMinMeasuredValueVisible());
             Helper.enableNode(upperRightText, gauge.isMaxMeasuredValueVisible());
@@ -686,12 +684,13 @@ public class LcdSkin extends GaugeSkinBase {
 
     @Override protected void redraw() {
         locale            = gauge.getLocale();
-        valueFormatString = new StringBuilder("%.").append(Integer.toString(gauge.getDecimals())).append("f").toString();
-        otherFormatString = new StringBuilder("%.").append(Integer.toString(gauge.getTickLabelDecimals())).append("f").toString();
+        valueFormatString = new StringBuilder("%.").append(gauge.getDecimals()).append("f").toString();
+        otherFormatString = new StringBuilder("%.").append(gauge.getTickLabelDecimals()).append("f").toString();
 
         if (gauge.isThresholdVisible()) { threshold.setVisible(Double.compare(gauge.getCurrentValue(), gauge.getThreshold()) >= 0); }
 
-        valueText.setText(isNoOfDigitsInvalid() ? "-E-" : formatNumber(gauge.getLocale(), gauge.getFormatString(), gauge.getDecimals(), gauge.getCurrentValue()));
+        //valueText.setText(isNoOfDigitsInvalid() ? "-E-" : formatNumber(gauge.getLocale(), gauge.getFormatString(), gauge.getDecimals(), gauge.getCurrentValue()));
+        valueText.setText(isNoOfDigitsInvalid() ? "-E-" : String.format(Locale.US, valueFormatString, gauge.getCurrentValue()));
 
         updateBackgroundText();
 

@@ -18,7 +18,36 @@ package eu.hansolo.medusa;
 
 import eu.hansolo.medusa.events.UpdateEvent;
 import eu.hansolo.medusa.events.UpdateEventListener;
-import eu.hansolo.medusa.skins.*;
+import eu.hansolo.medusa.skins.AmpSkin;
+import eu.hansolo.medusa.skins.BarSkin;
+import eu.hansolo.medusa.skins.BatterySkin;
+import eu.hansolo.medusa.skins.BulletChartSkin;
+import eu.hansolo.medusa.skins.ChargeSkin;
+import eu.hansolo.medusa.skins.DashboardSkin;
+import eu.hansolo.medusa.skins.DigitalSkin;
+import eu.hansolo.medusa.skins.FlatSkin;
+import eu.hansolo.medusa.skins.GaugeSkin;
+import eu.hansolo.medusa.skins.HSkin;
+import eu.hansolo.medusa.skins.IndicatorSkin;
+import eu.hansolo.medusa.skins.KpiSkin;
+import eu.hansolo.medusa.skins.LcdSkin;
+import eu.hansolo.medusa.skins.LevelSkin;
+import eu.hansolo.medusa.skins.LinearSkin;
+import eu.hansolo.medusa.skins.ModernSkin;
+import eu.hansolo.medusa.skins.PlainAmpSkin;
+import eu.hansolo.medusa.skins.QuarterSkin;
+import eu.hansolo.medusa.skins.SectionSkin;
+import eu.hansolo.medusa.skins.SimpleDigitalSkin;
+import eu.hansolo.medusa.skins.SimpleSectionSkin;
+import eu.hansolo.medusa.skins.SimpleSkin;
+import eu.hansolo.medusa.skins.SlimSkin;
+import eu.hansolo.medusa.skins.SpaceXSkin;
+import eu.hansolo.medusa.skins.TileKpiSkin;
+import eu.hansolo.medusa.skins.TileSparklineSkin;
+import eu.hansolo.medusa.skins.TileTextKpiSkin;
+import eu.hansolo.medusa.skins.TinySkin;
+import eu.hansolo.medusa.skins.VSkin;
+import eu.hansolo.medusa.skins.WhiteSkin;
 import eu.hansolo.medusa.tools.Data;
 import eu.hansolo.medusa.tools.GradientLookup;
 import eu.hansolo.medusa.tools.Helper;
@@ -31,6 +60,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
@@ -107,14 +137,14 @@ public class Gauge extends Control {
     public enum ScaleDirection { CLOCKWISE, COUNTER_CLOCKWISE, LEFT_TO_RIGHT, RIGHT_TO_LEFT, BOTTOM_TO_TOP, TOP_TO_BOTTOM }
 
     public enum SkinType {
-        AMP, BULLET_CHART, DASHBOARD, FLAT, GAUGE, INDICATOR, KPI,
+        AMP, PLAIN_AMP, BULLET_CHART, DASHBOARD, FLAT, GAUGE, INDICATOR, KPI,
         MODERN, SIMPLE, SLIM, SPACE_X, QUARTER, HORIZONTAL, VERTICAL,
         LCD, TINY, BATTERY, LEVEL, LINEAR, DIGITAL, SIMPLE_DIGITAL, SECTION,
         BAR, WHITE, CHARGE, SIMPLE_SECTION, TILE_KPI, TILE_TEXT_KPI, TILE_SPARK_LINE
     }
 
-    public static final  Color   DARK_COLOR          = Color.rgb(36, 36, 36);
-    public static final  Color   BRIGHT_COLOR        = Color.rgb(223, 223, 223);
+    public static final  Color   DARK_COLOR          = Color.rgb(36, 36, 36);    // #242424
+    public static final  Color   BRIGHT_COLOR        = Color.rgb(223, 223, 223); // #dfdfdf
     private static final long    LED_BLINK_INTERVAL  = 500l;
     private static final int     MAX_NO_OF_DECIMALS  = 3;
 
@@ -408,15 +438,129 @@ public class Gauge extends Control {
     public Gauge() {
         this(SkinType.GAUGE);
     }
-    public Gauge(@NamedArg("SKIN_TYPE") final SkinType SKIN_TYPE) {
+    public Gauge(@NamedArg(value="skinType", defaultValue="SkinType.GAUGE") final SkinType skinType) {
         setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
-        skinType = SKIN_TYPE;
+        this.skinType = skinType;
         getStyleClass().add("gauge");
 
         init();
         registerListeners();
 
-        setSkinType(SKIN_TYPE);
+        setSkinType(skinType);
+    }
+    public Gauge(@NamedArg(value="skinType", defaultValue="SkinType.GAUGE") SkinType skinType,
+                 @NamedArg(value="minValue", defaultValue="0") double minValue,
+                 @NamedArg(value="maxValue", defaultValue="100") double maxValue,
+                 @NamedArg(value="value", defaultValue="0") double value,
+                 @NamedArg(value="threshold", defaultValue="100") double threshold,
+                 @NamedArg(value="title", defaultValue="") String title,
+                 @NamedArg(value="subTitle", defaultValue="") String subTitle,
+                 @NamedArg(value="unit", defaultValue="") String unit,
+                 @NamedArg(value="averagingEnabled", defaultValue="false") boolean averagingEnabled,
+                 @NamedArg(value="startFromZero", defaultValue="false") boolean startFromZero,
+                 @NamedArg(value="returnToZero", defaultValue="false") boolean returnToZero,
+                 @NamedArg(value="zeroColor", defaultValue="#242424") Color zeroColor,
+                 @NamedArg(value="minMeasuredValue", defaultValue="100") double minMeasuredValue,
+                 @NamedArg(value="maxMeasuredValue", defaultValue="0") double maxMeasuredValue,
+                 @NamedArg(value="minMeasuredValueVisible", defaultValue="false") boolean minMeasuredValueVisible,
+                 @NamedArg(value="maxMeasuredValueVisible", defaultValue="false") boolean maxMeasuredValueVisible,
+                 @NamedArg(value="oldValueVisible", defaultValue="false") boolean oldValueVisible,
+                 @NamedArg(value="valueVisible", defaultValue="true") boolean valueVisible,
+                 @NamedArg(value="backgroundPaint", defaultValue="#00000000") Paint backgroundPaint,
+                 @NamedArg(value="borderPaint", defaultValue="#00000000") Paint borderPaint,
+                 @NamedArg(value="foregroundPaint", defaultValue="#00000000") Paint foregroundPaint,
+                 @NamedArg(value="borderWidth", defaultValue="1") double borderWidth,
+                 @NamedArg(value="knobColor", defaultValue="#cccccc") Color knobColor,
+                 @NamedArg(value="knobType", defaultValue="KnobType.STANDARD") KnobType knobType,
+                 @NamedArg(value="knobVisible", defaultValue="true") boolean knobVisible,
+                 @NamedArg(value="animated", defaultValue="false") boolean animated,
+                 @NamedArg(value="animationDuration", defaultValue="800") long animationDuration,
+                 @NamedArg(value="startAngle", defaultValue="320") double startAngle,
+                 @NamedArg(value="angleRange", defaultValue="280") double angleRange,
+                 @NamedArg(value="autoScale", defaultValue="true") boolean autoScale,
+                 @NamedArg(value="shadowsEnabled", defaultValue="false") boolean shadowsEnabled,
+                 @NamedArg(value="barEffectEnabled", defaultValue="false") boolean barEffectEnabled,
+                 @NamedArg(value="scaleDirection", defaultValue="ScaleDiretion.CLOCKWISE") ScaleDirection scaleDirection,
+                 @NamedArg(value="tickLabelLocation", defaultValue="TickLabelLocation.INSIDE") TickLabelLocation tickLabelLocation,
+                 @NamedArg(value="tickLabelOrientation", defaultValue="TickLabelOrientation.HORIZONTAL") TickLabelOrientation tickLabelOrientation,
+                 @NamedArg(value="tickLabelColor", defaultValue="#242424") Color tickLabelColor,
+                 @NamedArg(value="tickMarkColor", defaultValue="#242424") Color tickMarkColor,
+                 @NamedArg(value="majorTickMarkColor", defaultValue="#242424") Color majorTickMarkColor,
+                 @NamedArg(value="mediumTickMarkColor", defaultValue="#242424") Color mediumTickMarkColor,
+                 @NamedArg(value="minorTickMarkColor", defaultValue="#242424") Color minorTickMarkColor,
+                 @NamedArg(value="majorTickMarkType", defaultValue="TickMarkType.LINE") TickMarkType majorTickMarkType,
+                 @NamedArg(value="mediumTickMarkType", defaultValue="TickMarkType.LINE") TickMarkType mediumTickMarkType,
+                 @NamedArg(value="minorTickMarkType", defaultValue="TickMarkType.LINE") TickMarkType minorTickMarkType,
+                 @NamedArg(value="locale", defaultValue="Locale.US") Locale locale,
+                 @NamedArg(value="decimals", defaultValue="1") int decimals,
+                 @NamedArg(value="tickLabelDecimals", defaultValue="0") int tickLabelDecimals,
+                 @NamedArg(value="needleType", defaultValue="NeedleType.STANDARD") NeedleType needleType,
+                 @NamedArg(value="needleShape", defaultValue="NeedleShape.ANGLED") NeedleShape needleShape,
+                 @NamedArg(value="needleSize", defaultValue="NeedleSize.STANDARD") NeedleSize needleSize,
+                 @NamedArg(value="needleBehavior", defaultValue="NeedleBehavior.STANDARD") NeedleBehavior needleBehavior,
+                 @NamedArg(value="needleColor", defaultValue="#c80000") Color needleColor,
+                 @NamedArg(value="needleBorderColor", defaultValue="#00000000") Color needleBorderColor,
+                 @NamedArg(value="barColor", defaultValue="#dfdfdf") Color barColor,
+                 @NamedArg(value="barBorderColor", defaultValue="#00000000") Color barBorderColor,
+                 @NamedArg(value="barBackgroundColor", defaultValue="#242424") Color barBackgroundColor,
+                 @NamedArg(value="lcdDesign", defaultValue="LcdDesign.STANDARD") LcdDesign lcdDesign,
+                 @NamedArg(value="lcdFont", defaultValue="LcdFont.DIGITAL_BOLD") LcdFont lcdFont,
+                 @NamedArg(value="ledColor", defaultValue="#ff0000") Color ledColor,
+                 @NamedArg(value="ledType", defaultValue="LedType.STANDARD") LedType ledType,
+                 @NamedArg(value="titleColor", defaultValue="#242424") Color titleColor,
+                 @NamedArg(value="subTitleColor", defaultValue="#242424") Color subTitleColor,
+                 @NamedArg(value="unitColor", defaultValue="#242424") Color unitColor,
+                 @NamedArg(value="valueColor", defaultValue="#242424") Color valueColor,
+                 @NamedArg(value="thresholdColor", defaultValue="#dc143c") Color thresholdColor,
+                 @NamedArg(value="averageColor", defaultValue="#ff00ff") Color averageColor,
+                 @NamedArg(value="checkSectionsForValue", defaultValue="false") boolean checkSectionsForValue,
+                 @NamedArg(value="checkAreasForValue", defaultValue="false") boolean checkAreasForValue,
+                 @NamedArg(value="checkTreshold", defaultValue="false") boolean checkThreshold,
+                 @NamedArg(value="innerShadowEnabled", defaultValue="false") boolean innerShadowVisible,
+                 @NamedArg(value="thresholdVisible", defaultValue="false") boolean thresholdVisible,
+                 @NamedArg(value="averageVisible", defaultValue="false") boolean averageVisible,
+                 @NamedArg(value="sectionsVisible", defaultValue="false") boolean sectionsVisible,
+                 @NamedArg(value="sectionsAlwaysVisible", defaultValue="false") boolean sectionsAlwaysVisible,
+                 @NamedArg(value="sectionTextVisible", defaultValue="false") boolean sectionTextVisible,
+                 @NamedArg(value="sectionIconsVisible", defaultValue="false") boolean sectionIconsVisible,
+                 @NamedArg(value="highlightSections", defaultValue="false") boolean highlightSections,
+                 @NamedArg(value="areasVisible", defaultValue="false") boolean areasVisible,
+                 @NamedArg(value="areaTextVisible", defaultValue="false") boolean areaTextVisible,
+                 @NamedArg(value="areaIconsVisible", defaultValue="false") boolean areaIconsVisible,
+                 @NamedArg(value="highlightAreas", defaultValue="false") boolean highlightAreas,
+                 @NamedArg(value="tickMarkSectionsVisible", defaultValue="false") boolean tickMarkSectionsVisible,
+                 @NamedArg(value="tickLabelSectionsVisible", defaultValue="false") boolean tickLabelSectionsVisible,
+                 @NamedArg(value="markersVisible", defaultValue="false") boolean markersVisible,
+                 @NamedArg(value="tickLabelsVisible", defaultValue="true") boolean tickLabelsVisible,
+                 @NamedArg(value="onlyFirstAndLastTickLabelVisible", defaultValue="false") boolean onlyFirstAndLastTickLabelVisible,
+                 @NamedArg(value="majorTickMarksVisible", defaultValue="true") boolean majorTickMarksVisible,
+                 @NamedArg(value="mediumTickMarksVisible", defaultValue="true") boolean mediumTickMarksVisible,
+                 @NamedArg(value="minorTickMarksVisible", defaultValue="true") boolean minorTickMarksVisible,
+                 @NamedArg(value="tickMarkRingVisible", defaultValue="false") boolean tickMarkRingVisible,
+                 @NamedArg(value="lcdVisible", defaultValue="false") boolean lcdVisible,
+                 @NamedArg(value="lcdCrystalEnalbed", defaultValue="false") boolean lcdCrystalEnabled,
+                 @NamedArg(value="ledVisible", defaultValue="false") boolean ledVisible,
+                 @NamedArg(value="orientation", defaultValue="Orientation.HORIZONTAL") Orientation orientation,
+                 @NamedArg(value="keepAspect", defaultValue="true") boolean keepAspect,
+                 @NamedArg(value="gradientBarEnabled", defaultValue="false") boolean gradientBarEnabled,
+                 @NamedArg(value="customTickLabelsEnabled", defaultValue="false") boolean customTickLabelsEnabled,
+                 @NamedArg(value="customTickLabelFontSize", defaultValue="18") double customTickLabelFontSize,
+                 @NamedArg(value="interactive", defaultValue="false") boolean interactive,
+                 @NamedArg(value="buttonTooltipText", defaultValue="") String buttonTooltipText,
+                 @NamedArg(value="customFontEnabled", defaultValue="false") boolean customFontEnabled,
+                 @NamedArg(value="customFont", defaultValue="Fonts.robotoRegular(12)") Font customFont,
+                 @NamedArg(value="alert", defaultValue="false") boolean alert,
+                 @NamedArg(value="alertMessage", defaultValue="") String alertMessage,
+                 @NamedArg(value="smoothing", defaultValue="false") boolean smoothing
+                 ) {
+        setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
+        this.skinType = skinType;
+        getStyleClass().add("gauge");
+
+        init();
+        registerListeners();
+
+        setSkinType(skinType);
     }
 
 
@@ -437,10 +581,20 @@ public class Gauge extends Control {
                     if (NeedleBehavior.STANDARD == getNeedleBehavior()) {
                         KEY_VALUE = new KeyValue(currentValue, VALUE, Interpolator.SPLINE(0.5, 0.4, 0.4, 1.0));
                     } else { // Optimized only useful in a gauge where the angle range is 360 deg and the shorter way has to be calculated.
-                        double ov  = getOldValue();
-                        double min = getMinValue();
-                        double max = getMaxValue();
-                        double cv  = getCurrentValue();
+                        double ov         = getOldValue();
+                        double min        = getMinValue();
+                        double max        = getMaxValue();
+                        double halfRange  = getRange() * 0.5;
+                        double cv         = getCurrentValue();
+                        double delta      = VALUE - getCurrentValue();
+
+                        if (delta < -halfRange) {
+                            double kv1 = max - cv;
+                            double kv2 = VALUE;
+                        } else if (delta > halfRange) {
+
+                        }
+
                         double tmpValue;
                         if (Math.abs(VALUE - ov) > getRange() * 0.5) {
                             if (ov < VALUE) {
@@ -2197,10 +2351,8 @@ public class Gauge extends Control {
                     if (get()) {
                         calcAutoScale();
                     } else {
-                        setMinValue(originalMinValue);
-                        setMaxValue(originalMaxValue);
-                        setMajorTickSpace(originalMajorTickSpace);
-                        setMinorTickSpace(originalMinorTickSpace);
+                        setMinValue(Double.compare(-Double.MAX_VALUE, originalMinValue) == 0 ? getMinValue() : originalMinValue);
+                        setMaxValue(Double.compare(Double.MAX_VALUE, originalMaxValue) == 0 ? getMaxValue() : originalMaxValue);
                     }
                     fireUpdateEvent(RECALC_EVENT);
                 }
@@ -5204,35 +5356,39 @@ public class Gauge extends Control {
 
         try {
 
-            double maxNoOfMinorTicks = 10;
-			double[] niceParameters = Helper.getNiceScale(getMinValue(), getMaxValue());
-
-			setMinValue(niceParameters[0]);
-            setMaxValue(niceParameters[1]);
-			setRange(niceParameters[2]);
-            setMajorTickSpace(niceParameters[3]);
-            setMinorTickSpace(Helper.calcNiceNumber(niceParameters[3] / (maxNoOfMinorTicks - 1), true));
-
 //	--- old way of computing nice values ---------------------------------------
-//            double maxNoOfMajorTicks = 10;
-//            double niceRange         = (Helper.calcNiceNumber(getRange(), false));
+//	---	Claudio Rosati's way of doing it ---------------------------------------
+//			double maxNoOfMinorTicks = 10;
+//			double[] niceParameters = Helper.getNiceScale(getMinValue(), getMaxValue());
 //
-//            setMajorTickSpace(Helper.calcNiceNumber(niceRange / (maxNoOfMajorTicks - 1), true));
-//            setMinorTickSpace(Helper.calcNiceNumber(getMajorTickSpace() / (maxNoOfMinorTicks - 1), true));
-//
-//            double niceMinValue = (Math.floor(getMinValue() / getMajorTickSpace()) * getMajorTickSpace());
-//            double niceMaxValue = (Math.ceil(getMaxValue() / getMajorTickSpace()) * getMajorTickSpace());
-//
-//            setMinValue(niceMinValue);
-//            setMaxValue(niceMaxValue);
+//			setMinValue(niceParameters[0]);
+//			setMaxValue(niceParameters[1]);
+//			setRange(niceParameters[2]);
+//			setMajorTickSpace(niceParameters[3]);
+//			setMinorTickSpace(Helper.calcNiceNumber(niceParameters[3] / (maxNoOfMinorTicks - 1), true));
 //	----------------------------------------------------------------------------
+
+			double maxNoOfMajorTicks = 10;
+			double maxNoOfMinorTicks = 10;
+			double minValue          = getMinValue();
+			double maxValue          = getMaxValue();
+			double range             = maxValue - minValue;
+			double niceRange         = (Helper.calcNiceNumber(range, false));
+
+			setMajorTickSpace(Helper.calcNiceNumber(niceRange / (maxNoOfMajorTicks - 1), true));
+			setMinorTickSpace(Helper.calcNiceNumber(getMajorTickSpace() / (maxNoOfMinorTicks - 1), true));
+
+			double niceMinValue = (Math.floor(minValue / getMajorTickSpace()) * getMajorTickSpace());
+			double niceMaxValue = (Math.ceil(maxValue / getMajorTickSpace()) * getMajorTickSpace());
+
+			setMinValue(niceMinValue);
+			setMaxValue(niceMaxValue);
 
         } finally {
             updatingAutoscaleExtrema = false;
         }
 
     }
-
 
     // ******************** Misc **********************************************
     private synchronized void createBlinkTask() {
@@ -5285,6 +5441,12 @@ public class Gauge extends Control {
     private void setupBinding() {
         showing = Bindings.createBooleanBinding(() -> {
             if (getScene() != null && getScene().getWindow() != null) {
+                if (getScene().getWindow().isShowing()) {
+                    while(updateEventQueue.peek() != null) {
+                        UpdateEvent event = updateEventQueue.poll();
+                        for (UpdateEventListener listener : listenerList) { listener.onUpdateEvent(event); }
+                    }
+                }
                 return getScene().getWindow().isShowing();
             } else {
                 return false;
@@ -5305,6 +5467,7 @@ public class Gauge extends Control {
     @Override protected Skin createDefaultSkin() {
         switch (skinType) {
             case AMP            : return new AmpSkin(Gauge.this);
+            case PLAIN_AMP      : return new PlainAmpSkin(Gauge.this);
             case BULLET_CHART   : return new BulletChartSkin(Gauge.this);
             case DASHBOARD      : return new DashboardSkin(Gauge.this);
             case FLAT           : return new FlatSkin(Gauge.this);
@@ -5346,12 +5509,22 @@ public class Gauge extends Control {
             case AMP:
                 setKnobPosition(Pos.BOTTOM_CENTER);
                 setTitleColor(Color.WHITE);
-                setLedVisible(true);
+                setLedVisible(isLedVisible());
                 setBackgroundPaint(Color.WHITE);
                 setForegroundPaint(Color.BLACK);
-                setLcdVisible(true);
-                setShadowsEnabled(true);
+                setLcdVisible(isLcdVisible());
+                setShadowsEnabled(isShadowsEnabled());
                 super.setSkin(new AmpSkin(Gauge.this));
+                break;
+            case PLAIN_AMP:
+                setKnobPosition(Pos.BOTTOM_CENTER);
+                setTitleColor(Color.WHITE);
+                setLedVisible(isLedVisible());
+                setBackgroundPaint(Color.WHITE);
+                setForegroundPaint(Color.BLACK);
+                setLcdVisible(isLcdVisible());
+                setShadowsEnabled(isShadowsEnabled());
+                super.setSkin(new PlainAmpSkin(Gauge.this));
                 break;
             case BULLET_CHART:
                 setKnobPosition(Pos.CENTER);
@@ -5470,9 +5643,9 @@ public class Gauge extends Control {
             case LCD:
                 setDecimals(1);
                 setTickLabelDecimals(1);
-                setMinMeasuredValueVisible(true);
-                setMaxMeasuredValueVisible(true);
-                setOldValueVisible(true);
+                setMinMeasuredValueVisible(isMinMeasuredValueVisible());
+                setMaxMeasuredValueVisible(isMaxMeasuredValueVisible());
+                setOldValueVisible(isOldValueVisible());
                 setBorderPaint(Color.WHITE);
                 setForegroundPaint(Color.WHITE);
                 super.setSkin(new LcdSkin(Gauge.this));
@@ -5642,8 +5815,8 @@ public class Gauge extends Control {
 
     // ******************** Inner Classes *************************************
     public static class ButtonEvent extends Event {
-        public static final EventType<ButtonEvent> BTN_PRESSED  = new EventType<>(ANY, "BTN_PRESSED");
-        public static final EventType<ButtonEvent> BTN_RELEASED = new EventType<>(ANY, "BTN_RELEASED");
+        public static final EventType<ButtonEvent> BTN_PRESSED  = new EventType<>(ANY, "BTN_PRESSED" + UUID.randomUUID().toString());
+        public static final EventType<ButtonEvent> BTN_RELEASED = new EventType<>(ANY, "BTN_RELEASED" + UUID.randomUUID().toString());
 
 
         // ******************** Constructors **************************************
@@ -5652,8 +5825,8 @@ public class Gauge extends Control {
     }
 
     public static class ThresholdEvent extends Event {
-        public static final EventType<ThresholdEvent> THRESHOLD_EXCEEDED = new EventType<>(ANY, "THRESHOLD_EXCEEDED");
-        public static final EventType<ThresholdEvent> THRESHOLD_UNDERRUN = new EventType<>(ANY, "THRESHOLD_UNDERRUN");
+        public static final EventType<ThresholdEvent> THRESHOLD_EXCEEDED = new EventType<>(ANY, "THRESHOLD_EXCEEDED" + UUID.randomUUID().toString());
+        public static final EventType<ThresholdEvent> THRESHOLD_UNDERRUN = new EventType<>(ANY, "THRESHOLD_UNDERRUN" + UUID.randomUUID().toString());
 
 
         // ******************** Constructors **************************************

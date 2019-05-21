@@ -17,6 +17,9 @@
 package eu.hansolo.medusa;
 
 
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -25,9 +28,6 @@ import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.event.EventType;
 import javafx.scene.paint.Color;
-
-import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 
 
 /**
@@ -206,9 +206,9 @@ public class Alarm {
 
 
     // ******************** Inner Classes *************************************
-    public static class AlarmMarkerEvent extends Event {;
-        public static final EventType<AlarmMarkerEvent> ALARM_MARKER_PRESSED  = new EventType(ANY, "ALARM_MARKER_PRESSED");
-        public static final EventType<AlarmMarkerEvent> ALARM_MARKER_RELEASED = new EventType(ANY, "ALARM_MARKER_RELEASED");
+    public static class AlarmMarkerEvent extends Event {
+        public static final EventType<AlarmMarkerEvent> ALARM_MARKER_PRESSED  = new EventType(ANY, "ALARM_MARKER_PRESSED" + UUID.randomUUID().toString());
+        public static final EventType<AlarmMarkerEvent> ALARM_MARKER_RELEASED = new EventType(ANY, "ALARM_MARKER_RELEASED" + UUID.randomUUID().toString());
 
 
         // ******************** Constructors **************************************
